@@ -7,7 +7,7 @@ Class:CS4280
 #include<stdbool.h>
 #include<string.h>
 #include "parser.h"
-#include "statsem.h"
+#include "codegen.h"
 int main(int argc, char**argv)
 {
 	char* filename;                   
@@ -35,8 +35,7 @@ int main(int argc, char**argv)
 	{
 		//filename is set to the file the user entered with the implict extension .fs
 		filename=argv[1];
-		filename=strcat(filename,".fs");
-		
+		filename=strcat(filename,".fs");	
 	}
 	struct node_t* root;
 	root=parser(filename);

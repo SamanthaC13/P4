@@ -7,100 +7,61 @@
 #include<string.h>
 #include"token.h"
 #include"parser.h"
-#include"statsem.h"
+#include"codegen.h"
 struct stackNode* head;
 struct stackNode* currentNode;
 struct stackNode** headP;
 int stackCount=0,blockFlag=0,varCount=0;
-void  traverseTree(struct node_t* p)
+void  traverseTree(struct node_t* p,FILE *out)
 //Function that traverses the tree using recursion in a pre-order traversal
 {
-	int i,varsFlag=0;
-	if(strcmp(p->nodeName,"vars")==0)
-	//if a vars node is encountered then the varsFlag is set to 1
+	if(p==NULL)
 	{
-		varsFlag=1;	
+		return;
 	}
-	if(p->startToken!=NULL)
-	//In each node all the tokens in that node are looped through
+	switch (p->nodeName)
 	{
-		int j=0;
-		struct tokenType* tokenP=p->startToken;
-		while(j<p->numOfTokens)
-		{   
-			if(tokenP->tokenID==IDTK)
-			//Looking for all the ID tokens to see if they need to be added to the stack or verified that they have been defined
-			{
-				if((varsFlag==1)&&(blockFlag==0))
-				//this option is for variables declared not in a block (global)
-				{
-					if(verify(tokenP->tokenInstance))
-					{	
-						errorMsg(tokenP,2);
-					}
-					push(tokenP);
-				}
-				if((varsFlag==0)&&(blockFlag==0))
-				//This option is for variables that are used not in a block
-				{
-					if(!verify(tokenP->tokenInstance))
-					{
-						errorMsg(tokenP,1);
-					}
-				}
-				if((blockFlag==1)&&(varsFlag==0))
-				//this option is for variables that are being used in a block to make sure they were defined in the program
-				{
-					if(find(tokenP->tokenInstance)==-1)
-					{
-						errorMsg(tokenP,1);
-					}
-				}
-				if((blockFlag==1)&&(varsFlag==1))
-				//this option is for variables defined in a block (local) there is a special case that accounts for variables that are defined with the same name 
-				//as a global variable they are allowed in the local scope 
-				{
-					varCount++;
-					if(find(tokenP->tokenInstance)!=-1)
-					{
-						if(find(tokenP->tokenInstance)>varCount)
-						{
-							errorMsg(tokenP,2);
-						}
-					}
-					push(tokenP);
-				}
-			}
-			tokenP=tokenP->nextToken;
-			j++;
-		}
-	}
-	for(i=0;i<5;i++)
-	{
-		if((strcmp(p->nodeName,"block")==0)&&(i==0))
-		//sets the flag for the start of a block
-		{
-			blockFlag=1;
-		}
-		if(p->children[i]!=NULL)
-		{
-			//the function recursivly calls itself with the children of the node
-			traverseTree(p->children[i]);
-		}
-		if((strcmp(p->nodeName,"block")==0)&&(i==1))
-		//gets the end the block when it is being closed it pops all of its local variables off the stack and sets the blockFlag to 0 and the varCount to 0
-		{	
-			p->blockVarCount=varCount;
-			int k=0;
-			for(k=0;k<p->blockVarCount;k++)
-			{	
-				pop();
-			}
-			blockFlag=0;
-			varCount=0;
-		}
-	}
-	return;
+		case "vars":
+			fprintf(out,"LOAD %s",p->tokens[1]);
+			fprintf(out,"STORE %s",p->tokens[0]);
+			traverseTree(p->children[0],out);			
+			break;
+		case "program":
+			traverseTree(p->children[0],out);//vars
+			traverseTree(p->children[1],out);//block
+			fprintf(out,"STOP");
+			break;
+		case "block":
+			traverseTree(p->children[0],out);//vars
+			traverseTree(p->children[1],out);//stats
+			break;
+		case "stats":
+			traverseTree(p->children[0],out)//stat
+			traverseTree(p->chlidren[1],out)//mstat
+			break;
+		case "mstat":
+			traverseTree(p->children[0],out)//stat
+			traverseTree(p->children[1],out)//mstat
+			break;
+		case "stat":
+			traverseTree(p->children[0],out)//stat option
+			break;
+		case "in":
+			fprintf(out,"READ %s",p->tokens[0]);
+			break;
+		case "out":
+			break;
+		case "if":
+			break;
+		case "loop":
+			break;
+		case "goto":
+			break;
+		case "assign":
+			break;
+		case "label":
+			break;
+	}			
 }
 void push(struct tokenType* addToken)
 //function that adds nodes to the stack the data is a token and there is a currentNode to keep track of the current (top) node and the head and head Pointer are represting the start or bootom of the stack

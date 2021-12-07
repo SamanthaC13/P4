@@ -53,15 +53,13 @@ void  printTree(struct node_t* p, int level)
 {
 	int i;
 	printf("\n%*c%d:%s-",level*2,' ',level,p->nodeName);
-	if(p->startToken!=NULL)
+	if(p->tokens[0]!=NULL)
 	//In each node all the tokens in that node are printed also
 	{
 		int j=0;
-		struct tokenType* tokenP=p->startToken;
-		while(j<p->numOfTokens)
+		while(p->tokens[j]!=NULL)
 		{
-			printf(" %s",tokenP->tokenInstance);
-			tokenP=tokenP->nextToken;
+			printf(" %s",p->tokens[j]->tokenInstance);
 			j++;
 		}
 	}
@@ -90,36 +88,13 @@ struct node_t* getNode(char* functionName)
 void addTokenToNode(struct node_t* p)
 //add the currentToken global variable to the node passed to the funnction
 {
-	int i=p->numOfTokens;
-	if(i==0)
-	//if the node has no other tokens yet then the token pointer is added to the node on start Pointer
-	{
-		p->startToken = malloc(sizeof(struct tokenType));
-		p->startToken->tokenID=currentToken.tokenID;
-		p->startToken->lineCount=currentToken.lineCount;
-		p->startToken->charCount=currentToken.charCount;
-		p->startToken->tokenInstance=malloc(sizeof(char)*15);
-		strcpy(p->startToken->tokenInstance,currentToken.tokenInstance);
-		p->startToken->nextToken=NULL;
-	}
-	else
-	//if the node has more then one token already then the token is added to the last token in the list as  token's nextToken attribute
-	{
-		int j=1;
-		struct tokenType* tokenP=p->startToken;
-		while(j<p->numOfTokens)
-		{
-			tokenP=tokenP->nextToken;
-			j++;
-		}
-		tokenP->nextToken=malloc(sizeof(struct tokenType));
-		tokenP->nextToken->tokenID=currentToken.tokenID;
-		tokenP->nextToken->lineCount=currentToken.lineCount;
-		tokenP->nextToken->charCount=currentToken.charCount;
-		tokenP->nextToken->tokenInstance=malloc(sizeof(char)*15);
-		strcpy(tokenP->nextToken->tokenInstance,currentToken.tokenInstance);
-	}
-	p->numOfTokens+=1;	
+	p->tokens[p->numOfTokens]=malloc(sizeof(struct tokenType));
+	p->tokens[p->numOfTokens]->tokenID = currentToken.tokenID;
+	p->tokens[p->numOfTokens]->lineCount=currentToken.lineCount;
+	p->tokens[p->numOfTokens]->charCount=currentToken.charCount;
+	p->tokens[p->numOfTokens]->tokenInstance=malloc(sizeof(char)*25);
+	strcpy(p->tokens[p->numOfTokens]->tokenInstance,currentToken.tokenInstance);
+	p->numOfTokens++;;	
 }
 struct node_t* program()
 //function for the program production rule
@@ -150,7 +125,6 @@ struct node_t* vars()
 			getNewToken();
 			if(currentToken.tokenID==EQTK)
 			{
-				addTokenToNode(p);
 				getNewToken();
 				if(currentToken.tokenID==NUMTK)
 				{
@@ -512,7 +486,6 @@ struct node_t* assign()
 		getNewToken();
 		if(currentToken.tokenID==EQTK)
 		{
-			addTokenToNode(p);
 			getNewToken();
 			p->children[0]=expr();
 			return p;
@@ -624,22 +597,18 @@ struct node_t* If()
 //function for te If production rule
 {
 	struct node_t* p=getNode("If");
-	addTokenToNode(p);
 	getNewToken();
 	if(currentToken.tokenID==LBKTK)
 	{
-		addTokenToNode(p);
 		getNewToken();
 		p->children[0]=expr();
 		p->children[1]=RO();
 		p->children[2]=expr();
 		if(currentToken.tokenID==RBKTK)
 		{
-			addTokenToNode(p);
 			getNewToken();
 			if(strcmp(currentToken.tokenInstance,"then")==0)
 			{
-				addTokenToNode(p);
 				getNewToken();
 				p->children[3]=stat();
 				if(strcmp(currentToken.tokenInstance,"else")==0)
