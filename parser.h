@@ -1,5 +1,6 @@
 struct node_t{
 	char* nodeName;
+	int nodeId;
 	struct tokenType* tokens[3];
 	int numOfTokens;
 	int blockVarCount;

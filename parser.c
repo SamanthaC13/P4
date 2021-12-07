@@ -14,6 +14,7 @@ FILE* input;
 int len=124;
 char* line;
 struct tokenType currentToken;
+char* nodeIDs[19]={"program","vars","block","stats","mstat","stat","in","out","assign","RO","label","If","loop","goTo","expr","N","A","M","R"};
 struct node_t* parser(char* filename)
 //function that starts off the parser and collects the root when the parser is done and prints the tree 
 //after the parsing is complete
@@ -79,6 +80,15 @@ struct node_t* getNode(char* functionName)
 	struct node_t* p= malloc(sizeof(struct node_t));
 	p->nodeName=malloc(sizeof(char)*20);
 	strcpy(p->nodeName,functionName);
+	int i=0;
+	for(i=0;i<20;i++)
+	{
+		if(strcmp(nodeIDs[i],p->nodeName)==0)
+		{
+			p->nodeId=i;
+			break;
+		}	
+	}
 	if(strcmp(p->nodeName,"block")==0)
 	{
 		p->blockVarCount=0;

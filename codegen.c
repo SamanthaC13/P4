@@ -19,47 +19,57 @@ void  traverseTree(struct node_t* p,FILE *out)
 	{
 		return;
 	}
-	switch (p->nodeName)
+	switch (p->nodeId)
 	{
-		case "vars":
-			fprintf(out,"LOAD %s",p->tokens[1]);
-			fprintf(out,"STORE %s",p->tokens[0]);
+		case Vars:
+			fprintf(out,"\nLOAD %s",p->tokens[1]);
+			fprintf(out,"\nSTORE %s",p->tokens[0]);
+			if(verify(p->tokens[0]->tokenInstance))
+			{
+				errorMsg(p->tokens[0],2);
+			}
+			push(p->tokens[0]);
 			traverseTree(p->children[0],out);			
 			break;
-		case "program":
+		case Program:
 			traverseTree(p->children[0],out);//vars
 			traverseTree(p->children[1],out);//block
-			fprintf(out,"STOP");
+			fprintf(out,"\nSTOP");
+			while(stackCount!=0)
+			{
+				fprintf(out,"\n%s 0",currentNode->IDtoken->tokenInstance);
+				pop();
+			}
 			break;
-		case "block":
+		case Block:
 			traverseTree(p->children[0],out);//vars
 			traverseTree(p->children[1],out);//stats
 			break;
-		case "stats":
-			traverseTree(p->children[0],out)//stat
-			traverseTree(p->chlidren[1],out)//mstat
+		case Stats:
+			traverseTree(p->children[0],out);//stat
+			traverseTree(p->children[1],out);//mstat
 			break;
-		case "mstat":
-			traverseTree(p->children[0],out)//stat
-			traverseTree(p->children[1],out)//mstat
+		case Mstat:
+			traverseTree(p->children[0],out);//stat
+			traverseTree(p->children[1],out);//mstat
 			break;
-		case "stat":
-			traverseTree(p->children[0],out)//stat option
+		case Stat:
+			traverseTree(p->children[0],out);//stat option
 			break;
-		case "in":
-			fprintf(out,"READ %s",p->tokens[0]);
+		case In:
+			fprintf(out,"\nREAD %s",p->tokens[0]);
 			break;
-		case "out":
+		case Out:
 			break;
-		case "if":
+		case IF:
 			break;
-		case "loop":
+		case Loop:
 			break;
-		case "goto":
+		case GoTo:
 			break;
-		case "assign":
+		case Assign:
 			break;
-		case "label":
+		case Label:
 			break;
 	}			
 }
