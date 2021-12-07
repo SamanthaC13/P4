@@ -12,6 +12,7 @@ int main(int argc, char**argv)
 {
 	char* filename; 
 	char* outputfilename;
+	outputfilename=malloc(sizeof(char)*15);
 	//This option if the user only entered the Program name without a file
 	if(argc==1)
 	{
@@ -29,20 +30,20 @@ int main(int argc, char**argv)
 		fclose(temp);
 		filename=malloc(sizeof(char)*10);
 		strcpy(filename,"temp.txt");
+		outputfilename="kb.asm";
         }
 	else
 	{
 		//filename is set to the file the user entered with the implict extension .fs
 		filename=argv[1];
-		strcpy(filename,outputfilename);
+		strcpy(outputfilename,filename);
 		filename=strcat(filename,".fs");
 	}
-	printf("%s",filename);
 	struct node_t* root;
 	root=parser(filename);
 	FILE* output;
 	outputfilename=strcat(outputfilename,".asm");
-	output=fopen(outputfilename,"w");	
+	output=fopen(outputfilename,"w");
 	traverseTree(root,output);
 	fclose(output);
 }
