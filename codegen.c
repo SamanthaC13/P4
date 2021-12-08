@@ -12,9 +12,14 @@ struct stackNode* head;
 struct stackNode* currentNode;
 struct stackNode** headP;
 int stackCount=0,blockFlag=0,varCount=0;
+int labelCount=0,tempVarCount=0;
+typedef enum {VAR, LABEL} nameType;
+char name[20];
+char*newName(nameType);
 void  traverseTree(struct node_t* p,FILE *out)
 //Function that traverses the tree using recursion in a pre-order traversal
 {
+	int num=0;
 	if(p==NULL)
 	{
 		return;
@@ -22,19 +27,21 @@ void  traverseTree(struct node_t* p,FILE *out)
 	switch (p->nodeId)
 	{
 		case Vars:
-			fprintf(out,"\nLOAD %s",p->tokens[1]->tokenInstance);
-			fprintf(out,"\nSTORE %s",p->tokens[0]->tokenInstance);
 			if(blockFlag==0)
 			{
 				if(verify(p->tokens[0]->tokenInstance))
 				{
 					errorMsg(p->tokens[0],2);
 				}
+				else
+				{
+					fprintf(out,"\nLOAD %s",p->tokens[1]->tokenInstance);
+					fprintf(out,"\nSTORE %s",p->tokens[0]->tokenInstance);
+				}
 				push(p->tokens[0]);
 			}
 			else
 			{
-				varCount++;
 				if(find(p->tokens[0]->tokenInstance)!=-1)
 				{
 					if(find(p->tokens[0]->tokenInstance)>varCount)
@@ -43,6 +50,9 @@ void  traverseTree(struct node_t* p,FILE *out)
 					}
 				}
 				push(p->tokens[0]);
+				fprintf(out,"\nLOAD %s",p->tokens[1]->tokenInstance);
+				fprintf(out,"\nPUSH",p->tokens[1]->tokenInstance);
+				varCount++;
 			}
 			traverseTree(p->children[0],out);			
 			break;
@@ -55,6 +65,15 @@ void  traverseTree(struct node_t* p,FILE *out)
 				fprintf(out,"\n%s 0",currentNode->IDtoken->tokenInstance);
 				pop();
 			}
+			int g=0,j=0;
+			for(g=0;g<tempVarCount;g++)
+			{
+				fprintf(out,"\nT%d 0",g);
+			}
+			for(j=0;j<labelCount;j++)
+			{	
+				fprintf(out,"\nL%d 0",j);
+			}
 			break;
 		case Block:
 			blockFlag=1;
@@ -65,6 +84,7 @@ void  traverseTree(struct node_t* p,FILE *out)
 			for(k=0;k<p->blockVarCount;k++)
 			{
 				pop();
+				fprintf(out,"\nPOP");
 			}
 			blockFlag=0;
 			varCount=0;
@@ -85,7 +105,17 @@ void  traverseTree(struct node_t* p,FILE *out)
 			{	
 				errorMsg(p->tokens[0],1);
 			}
-			fprintf(out,"\nREAD %s",p->tokens[0]->tokenInstance);
+			if(find(p->tokens[0]->tokenInstance)<varCount)
+			{
+				num=find(p->tokens[0]->tokenInstance);
+				fprintf(out,"\nREAD %s",newName(VAR));
+				fprintf(out,"\nLOAD %s",name);
+				fprintf(out,"\nSTACKW %d",num);
+			}
+			else
+			{
+				fprintf(out,"\n READ %s",p->tokens[0]->tokenInstance);
+			}
 			break;
 		case Out:
 			break;
@@ -95,11 +125,100 @@ void  traverseTree(struct node_t* p,FILE *out)
 			break;
 		case GoTo:
 			break;
+		case Expr:
+			traverseTree(p->children[0],out);
+			if(p->tokens[0]!=NULL)
+			{
+				fprintf(out,"\nADD");
+			}
+			break;
+		case n:
+			traverseTree(p->children[0],out);
+			if(p->tokens[0]!=NULL)
+			{
+				if(p->tokens[0]->tokenID==SLTK)
+				{
+					fprintf(out,"\nDIV");
+				}
+				if(p->tokens[0]->tokenID==ASKTK)
+				{
+					fprintf(out,"\nMULT");	
+				}
+			}
+			break;
+		case a:
+			traverseTree(p->children[0],out);
+			if(p->tokens[0]!=NULL)
+			{
+				fprintf(out,"\nSUB");
+			}
+			break;
+		case m:
+			traverseTree(p->children[0],out);
+			if(p->tokens[0]!=NULL)
+			{
+				fprintf(out,"\nMULT -1");	
+			}
+			break;
+		case r:
+			if(p->tokens[0]->tokenID==IDTK)
+			{
+				if(find(p->tokens[0]->tokenInstance)==-1)
+				{
+					errorMsg(p->tokens[0],1);
+				}
+				if(find(p->tokens[0]->tokenInstance)<varCount)
+				{
+					num=find(p->tokens[0]->tokenInstance);
+					fprintf(out,"\nSTACKR %d",num);	
+				}
+				else
+				{
+					fprintf(out,"\nLOAD %s",p->tokens[0]->tokenInstance);
+				}
+			}
+			if(p->tokens[0]->tokenID==NUMTK)
+			{
+				fprintf(out,"\nLOAD %d",p->tokens[0]->tokenInstance);
+			}
+			else
+			{
+				traverseTree(p->children[0],out);
+			}
+			break;
 		case Assign:
+			if(find(p->tokens[0]->tokenInstance)==-1)
+			{
+				errorMsg(p->tokens[1],1);
+			}
+			if(find(p->tokens[0]->tokenInstance)<varCount)
+			{
+				num=find(p->tokens[0]->tokenInstance);
+				fprintf(out,"\nSTACKR %d",num);
+				traverseTree(p->children[0],out);
+				fprintf(out,"\nSTACKW %d",num);		
+			}
+			else
+				fprintf("\nLOAD %s",p->tokens[0]->tokenInstance);
+				traverseTree(p->children[0],num);
+				fprintf(out,"\nSTORE %s",p->tokens[0]->tokenInstance);
+			}
 			break;
 		case Label:
 			break;
 	}			
+}
+char* newName(nameType what)
+{
+	if(what==VAR)//creating new temporary variable
+	{
+		sprintf(name,"T%d",tempVarCount++);
+	}
+	else
+	{
+		sprintf(name,"L%d",labelCount++);
+	}
+	return(name);
 }
 void push(struct tokenType* addToken)
 //function that adds nodes to the stack the data is a token and there is a currentNode to keep track of the current (top) node and the head and head Pointer are represting the start or bootom of the stack
