@@ -79,6 +79,7 @@ void  traverseTree(struct node_t* p,FILE *out)
 			break;
 		case Block:
 			blockFlag=1;
+			//fprintf(out,"START BLOCK-%d",varCount);
 			traverseTree(p->children[0],out);//vars
 			traverseTree(p->children[1],out);//stats
 			p->blockVarCount=varCount;
@@ -90,6 +91,7 @@ void  traverseTree(struct node_t* p,FILE *out)
 			}
 			blockFlag=0;
 			varCount=0;
+			//fprintf(out,"END BLOCK-%d",varCount);
 			break;
 		case Stats:
 			traverseTree(p->children[0],out);//stat
@@ -176,6 +178,46 @@ void  traverseTree(struct node_t* p,FILE *out)
 			}
 			break;
 		case Loop:
+			strcpy(label1,newName(LABEL));
+			fprintf(out,"\n%s: NOOP",label1);
+			traverseTree(p->children[2],out);
+			strcpy(arg1,newName(VAR));
+			fprintf(out,"\nSTORE %s",arg1);
+			traverseTree(p->children[0],out);
+			strcpy(label2,newName(LABEL));
+			if(p->children[1]->tokens[0]->tokenID==GTTK)
+			{
+				fprintf(out,"\nSUB %s",arg1);
+				fprintf(out,"\nBRZNEG %s",label2);
+				traverseTree(p->children[3],out);
+			}
+			else if(p->children[1]->tokens[0]->tokenID==LTTK)
+			{
+				fprintf(out,"\nSUB %s",arg1);
+				fprintf(out,"\nBRZPOS %s",label2);
+				traverseTree(p->children[3],out);
+			}
+			else if(p->children[1]->tokens[0]->tokenID==DBEQTK)
+			{
+				fprintf(out,"\nSUB %s",arg1);
+				fprintf(out,"\nBRPOS %s",label2);
+				fprintf(out,"\nBRNEG %s",label2);
+				traverseTree(p->children[3],out);
+			}
+			else if(p->children[1]->tokens[0]->tokenID==PCTTK)
+			{
+				fprintf(out,"\nMULT %s",arg1);
+				fprintf(out,"\nBRNEG %s",label2);
+				traverseTree(p->children[3],out);
+			}
+			else if(p->children[1]->tokens[0]->tokenID==LBCTK)
+			{
+				fprintf(out,"\nSUB %s",arg1);
+				fprintf(out,"\nBRZERO %s",label2);
+				traverseTree(p->children[3],out);
+			}
+			fprintf(out,"\nBR %s",label1);
+			fprintf(out,"\n%s: NOOP",label2);
 			break;
 		case GoTo:
 			if(find(p->tokens[0]->tokenInstance)==-1)

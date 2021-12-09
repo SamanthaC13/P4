@@ -579,14 +579,12 @@ struct node_t* loop()
 	getNewToken();
 	if(currentToken.tokenID==LBKTK)
 	{
-		addTokenToNode(p);
 		getNewToken();
 		p->children[0]=expr();
 		p->children[1]=RO();
 		p->children[2]=expr();
 		if(currentToken.tokenID=RBKTK)
 		{
-			addTokenToNode(p);
 			getNewToken();
 			p->children[3]=stat();
 			return p;
