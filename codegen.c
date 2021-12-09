@@ -20,7 +20,7 @@ void  traverseTree(struct node_t* p,FILE *out)
 //Function that traverses the tree using recursion in a pre-order traversal
 {
 	int num=0;
-	char label[20],label2[20],arg1[20],arg2[20];
+	char label1[20],label2[20],arg1[20],arg2[20];
 	if(p==NULL)
 	{
 		return;
@@ -126,10 +126,63 @@ void  traverseTree(struct node_t* p,FILE *out)
 			fprintf(out,"\nWRITE %s",arg1);
 			break;
 		case IF:
+			traverseTree(p->children[2],out);
+			strcpy(arg1,newName(VAR));
+			fprintf(out,"\nSTORE %s",arg1);
+			traverseTree(p->children[0],out);
+			strcpy(label1,newName(LABEL));
+			if(p->children[1]->tokens[0]->tokenID==GTTK)
+			{
+				fprintf(out,"\nSUB %s",arg1);
+				fprintf(out,"\nBRZNEG %s",label1);
+				traverseTree(p->children[3],out);	
+			}
+			else if(p->children[1]->tokens[0]->tokenID==LTTK)
+			{
+				fprintf(out,"\nSUB %s",arg1);
+				fprintf(out,"\nBRZPOS %s",label1);
+				traverseTree(p->children[3],out);
+			}
+			else if(p->children[1]->tokens[0]->tokenID==DBEQTK)
+			{
+				fprintf(out,"\nSUB %s",arg1);
+				fprintf(out,"\nBRPOS %s",label1);
+				fprintf(out,"\nBRNEG %s",label1);
+				traverseTree(p->children[3],out);
+			}
+			else if(p->children[1]->tokens[0]->tokenID==PCTTK)
+			{
+				fprintf(out,"\nMULT %s",arg1);
+				fprintf(out,"\nBRNEG %s",label1);
+				traverseTree(p->children[3],out);
+
+			}
+			else if(p->children[1]->tokens[0]->tokenID==LBCTK)
+			{
+				fprintf(out,"\nSUB %s",arg1);
+				fprintf(out,"\nBRZERO %s",label1);
+				traverseTree(p->children[3],out);
+			}
+			if(p->children[4]!=NULL)
+			{
+				strcpy(label2,newName(LABEL));
+				fprintf(out,"\nBR %s",label2);
+				traverseTree(p->children[4],out);
+				fprintf(out,"\n%s: NOOP",label2);
+			}
+			else
+			{
+				fprintf(out,"\n%s: NOOP",label1);
+			}
 			break;
 		case Loop:
 			break;
 		case GoTo:
+			if(find(p->tokens[0]->tokenInstance)==-1)
+			{
+				errorMsg(p->tokens[0],1);
+			}
+			fprintf(out,"\nBR %s",p->tokens[0]->tokenInstance);
 			break;
 		case Expr:
 			traverseTree(p->children[0],out);
@@ -210,7 +263,7 @@ void  traverseTree(struct node_t* p,FILE *out)
 		case Assign:
 			if(find(p->tokens[0]->tokenInstance)==-1)
 			{
-				errorMsg(p->tokens[1],1);
+				errorMsg(p->tokens[0],1);
 			}
 			if(find(p->tokens[0]->tokenInstance)<varCount)
 			{
@@ -227,7 +280,11 @@ void  traverseTree(struct node_t* p,FILE *out)
 			}
 			break;
 		case Label:
-			
+			if(find(p->tokens[0]->tokenInstance)==-1)
+			{
+				errorMsg(p->tokens[0],1);
+			}
+			fprintf(out,"\n%s: NOOP",p->tokens[0]->tokenInstance);
 			break;
 	}			
 }
