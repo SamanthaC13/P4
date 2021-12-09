@@ -12,14 +12,15 @@ struct stackNode* head;
 struct stackNode* currentNode;
 struct stackNode** headP;
 int stackCount=0,blockFlag=0,varCount=0;
-int labelCount=0,tempVarCount=0;
+static int labelCount=0,tempVarCount=0;
 typedef enum {VAR, LABEL} nameType;
-char name[20];
-char*newName(nameType);
+static char name[20];
+static char* newName(nameType);
 void  traverseTree(struct node_t* p,FILE *out)
 //Function that traverses the tree using recursion in a pre-order traversal
 {
 	int num=0;
+	char label[20],label2[20],arg1[20],arg2[20];
 	if(p==NULL)
 	{
 		return;
@@ -51,7 +52,8 @@ void  traverseTree(struct node_t* p,FILE *out)
 				}
 				push(p->tokens[0]);
 				fprintf(out,"\nLOAD %s",p->tokens[1]->tokenInstance);
-				fprintf(out,"\nPUSH",p->tokens[1]->tokenInstance);
+				fprintf(out,"\nPUSH");
+				fprintf(out,"\nSTACKW 0"); 
 				varCount++;
 			}
 			traverseTree(p->children[0],out);			
@@ -118,6 +120,10 @@ void  traverseTree(struct node_t* p,FILE *out)
 			}
 			break;
 		case Out:
+			traverseTree(p->children[0],out);
+			strcpy(arg1,newName(VAR));
+			fprintf(out,"\nSTORE %s",arg1);
+			fprintf(out,"\nWRITE %s",arg1);
 			break;
 		case IF:
 			break;
@@ -129,20 +135,29 @@ void  traverseTree(struct node_t* p,FILE *out)
 			traverseTree(p->children[0],out);
 			if(p->tokens[0]!=NULL)
 			{
-				fprintf(out,"\nADD");
+				strcpy(arg1,newName(VAR));
+				fprintf(out,"\nSTORE %s",arg1);
+				traverseTree(p->children[1],out);
+				fprintf(out,"\nADD %s",arg1);
 			}
 			break;
 		case n:
 			traverseTree(p->children[0],out);
 			if(p->tokens[0]!=NULL)
 			{
+				strcpy(arg1,newName(VAR));
+				fprintf(out,"\nSTORE %s",arg1);
+				traverseTree(p->children[1],out);
 				if(p->tokens[0]->tokenID==SLTK)
 				{
-					fprintf(out,"\nDIV");
+					strcpy(arg2,newName(VAR));
+					fprintf(out,"\nSTORE %s",arg2);
+					fprintf(out,"\nLOAD %s",arg1);
+					fprintf(out,"\nDIV %s",arg2);
 				}
 				if(p->tokens[0]->tokenID==ASKTK)
 				{
-					fprintf(out,"\nMULT");	
+					fprintf(out,"\nMULT %s",arg1);	
 				}
 			}
 			break;
@@ -150,7 +165,13 @@ void  traverseTree(struct node_t* p,FILE *out)
 			traverseTree(p->children[0],out);
 			if(p->tokens[0]!=NULL)
 			{
-				fprintf(out,"\nSUB");
+				strcpy(arg1,newName(VAR));
+				fprintf(out,"\nSTORE %s",arg1);
+				traverseTree(p->children[1],out);
+				strcpy(arg2,newName(VAR));
+				fprintf(out,"\nSTORE %s",arg2);
+				fprintf(out,"\nLOAD %s",arg1);
+				fprintf(out,"\nSUB %s",arg2);
 			}
 			break;
 		case m:
@@ -179,7 +200,7 @@ void  traverseTree(struct node_t* p,FILE *out)
 			}
 			if(p->tokens[0]->tokenID==NUMTK)
 			{
-				fprintf(out,"\nLOAD %d",p->tokens[0]->tokenInstance);
+				fprintf(out,"\nLOAD %s",p->tokens[0]->tokenInstance);
 			}
 			else
 			{
@@ -199,16 +220,18 @@ void  traverseTree(struct node_t* p,FILE *out)
 				fprintf(out,"\nSTACKW %d",num);		
 			}
 			else
-				fprintf("\nLOAD %s",p->tokens[0]->tokenInstance);
-				traverseTree(p->children[0],num);
+			{
+				fprintf(out,"\nLOAD %s",p->tokens[0]->tokenInstance);
+				traverseTree(p->children[0],out);
 				fprintf(out,"\nSTORE %s",p->tokens[0]->tokenInstance);
 			}
 			break;
 		case Label:
+			
 			break;
 	}			
 }
-char* newName(nameType what)
+static char* newName(nameType what)
 {
 	if(what==VAR)//creating new temporary variable
 	{
