@@ -30,7 +30,7 @@ int main(int argc, char**argv)
 		fclose(temp);
 		filename=malloc(sizeof(char)*10);
 		strcpy(filename,"temp.txt");
-		outputfilename="kb.asm";
+		strcpy(outputfilename,"kb");
         }
 	else
 	{
@@ -45,5 +45,6 @@ int main(int argc, char**argv)
 	outputfilename=strcat(outputfilename,".asm");
 	output=fopen(outputfilename,"w");
 	traverseTree(root,output);
+	printf("\n%s",outputfilename);
 	fclose(output);
 }

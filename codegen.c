@@ -18,17 +18,24 @@ static char name[20];
 static char* newName(nameType);
 void  traverseTree(struct node_t* p,FILE *out)
 //Function that traverses the tree using recursion in a pre-order traversal
+//Checks for statuc semantics and Generates Assembly code
 {
 	int num=0;
+	//Temporary labels and arguments placeholders
 	char label1[20],label2[20],arg1[20],arg2[20];
 	if(p==NULL)
+	//the condition to stop the recursion and return the node
 	{
 		return;
 	}
 	switch (p->nodeId)
+	//The nodes are sorted based on their nodeId which is set based on their nodeName 
 	{
 		case Vars:
+			//Node for ifa variable is declared
 			if(blockFlag==0)
+			//the variable is not in a block then it is a global variable at the beginning of the programming and loaded and 
+			//declared as a variable
 			{
 				if(verify(p->tokens[0]->tokenInstance))
 				{
@@ -39,28 +46,35 @@ void  traverseTree(struct node_t* p,FILE *out)
 					fprintf(out,"\nLOAD %s",p->tokens[1]->tokenInstance);
 					fprintf(out,"\nSTORE %s",p->tokens[0]->tokenInstance);
 				}
+				//The variable is pushed to the Symbol Table Stack
 				push(p->tokens[0]);
 			}
 			else
+			//The varaible is declared in a block then it is a local variable and is put on the stack and not declared 
+			//and the variable count is added by one
 			{	
+				varCount++;
 				if(find(p->tokens[0]->tokenInstance)!=-1)
 				{
-					if(find(p->tokens[0]->tokenInstance)>varCount)
+					if(find(p->tokens[0]->tokenInstance)<varCount)
 					{
 						errorMsg(p->tokens[0],2);
 					}
 				}
+				//the variable is added to the symbol table stack
 				push(p->tokens[0]);
 				fprintf(out,"\nLOAD %s",p->tokens[1]->tokenInstance);
 				fprintf(out,"\nPUSH");
 				fprintf(out,"\nSTACKW 0"); 
-				varCount++;
 			}
 			traverseTree(p->children[0],out);			
 			break;
 		case Program:
+			//The first child of program traverses the vars node and the second child traverses to the first block node
 			traverseTree(p->children[0],out);//vars
 			traverseTree(p->children[1],out);//block
+			//When program node is returned to the program is completed 
+			//and the global and temporary variables are delcared and the stop command is printed
 			fprintf(out,"\nSTOP");
 			while(stackCount!=0)
 			{
@@ -72,28 +86,29 @@ void  traverseTree(struct node_t* p,FILE *out)
 			{
 				fprintf(out,"\nT%d 0",g);
 			}
-			for(j=0;j<labelCount;j++)
-			{	
-				fprintf(out,"\nL%d 0",j);
-			}
 			break;
 		case Block:
 			blockFlag=1;
-			//fprintf(out,"START BLOCK-%d",varCount);
+			//blockFlag set shows that we are in a block 
 			if(p->children[0]!=NULL)
-			{	
+			{
+				//if the block is declaring varibles then it will need to reset the variable count if is not then it
+				//need to conitnue using the variable count from it's outer block or start at sero if it is the starting block
 				varCount=0;
 			}
 			else
 			{
+				//however if the block is not delcaring variables it need the variable count to be like the block it is in but it personal 
+				//variable Count for how many variables it should pop off the stack needs to be set to 0
 				p->blockVarCount=0;
 			}
 			traverseTree(p->children[0],out);//vars
 			if(p->children[0]!=NULL)
 			{
+				//If the bloack is delcaring any variiables it will do so in the ftraversal of the first child and afterword
+				//it can set the new varCount to the amount of variables the block needs to pop off the stack after it is completed 
 				p->blockVarCount=varCount;
 			}
-			//fprintf(out,"AFTER VARS-%d",varCount);
 			traverseTree(p->children[1],out);//stats
 			int k;
 			for(k=0;k<p->blockVarCount;k++)
@@ -102,7 +117,6 @@ void  traverseTree(struct node_t* p,FILE *out)
 				fprintf(out,"\nPOP");
 			}
 			blockFlag=0;
-			//fprintf(out,"END BLOCK-%d",varCount);
 			break;
 		case Stats:
 			traverseTree(p->children[0],out);//stat
@@ -117,10 +131,13 @@ void  traverseTree(struct node_t* p,FILE *out)
 			break;
 		case In:
 			if(find(p->tokens[0]->tokenInstance)==-1)
+			//if the idenifier token has not be declared 
 			{	
 				errorMsg(p->tokens[0],1);
 			}
 			if(find(p->tokens[0]->tokenInstance)<varCount)
+			//if the idenfiter is in the local stope it needs to be Read and loaded on to the stack using a 
+			//temporary variable
 			{
 				num=find(p->tokens[0]->tokenInstance);
 				fprintf(out,"\nREAD %s",newName(VAR));
@@ -128,35 +145,45 @@ void  traverseTree(struct node_t* p,FILE *out)
 				fprintf(out,"\nSTACKW %d",num);
 			}
 			else
+			//if the variable is not in the local stope then the value is read into the idenifier given
 			{
 				fprintf(out,"\nREAD %s",p->tokens[0]->tokenInstance);
 			}
 			break;
 		case Out:
+			//First the expresssion is evaluated 
+			//Then a temporary variable is used to store the result of the expression and 
+			//write it to the output
 			traverseTree(p->children[0],out);
 			strcpy(arg1,newName(VAR));
 			fprintf(out,"\nSTORE %s",arg1);
 			fprintf(out,"\nWRITE %s",arg1);
 			break;
 		case IF:
+			//The second expression is evaluated then stored in a local variable 
+			//the first expression is evaulted then based on the ralation operator given a branch is printed
+			//Thne baesd on if there is an else various labels are printed
 			traverseTree(p->children[2],out);
 			strcpy(arg1,newName(VAR));
 			fprintf(out,"\nSTORE %s",arg1);
 			traverseTree(p->children[0],out);
 			strcpy(label1,newName(LABEL));
 			if(p->children[1]->tokens[0]->tokenID==GTTK)
+			//Greater than Relational Operator
 			{
 				fprintf(out,"\nSUB %s",arg1);
 				fprintf(out,"\nBRZNEG %s",label1);
 				traverseTree(p->children[3],out);	
 			}
 			else if(p->children[1]->tokens[0]->tokenID==LTTK)
+			//Less than Relational Operator
 			{
 				fprintf(out,"\nSUB %s",arg1);
 				fprintf(out,"\nBRZPOS %s",label1);
 				traverseTree(p->children[3],out);
 			}
 			else if(p->children[1]->tokens[0]->tokenID==DBEQTK)
+			//Double Equal Relational Operator
 			{
 				fprintf(out,"\nSUB %s",arg1);
 				fprintf(out,"\nBRPOS %s",label1);
@@ -164,6 +191,7 @@ void  traverseTree(struct node_t* p,FILE *out)
 				traverseTree(p->children[3],out);
 			}
 			else if(p->children[1]->tokens[0]->tokenID==PCTTK)
+			//Percent Relational Operator
 			{
 				fprintf(out,"\nMULT %s",arg1);
 				fprintf(out,"\nBRNEG %s",label1);
@@ -172,11 +200,13 @@ void  traverseTree(struct node_t* p,FILE *out)
 			}
 			else if(p->children[1]->tokens[0]->tokenID==LBCTK)
 			{
+			//Not Equals Relationsl Operator
 				fprintf(out,"\nSUB %s",arg1);
 				fprintf(out,"\nBRZERO %s",label1);
 				traverseTree(p->children[3],out);
 			}
 			if(p->children[4]!=NULL)
+			//If a else is present then it is eevaulated and another label is created
 			{
 				strcpy(label2,newName(LABEL));
 				fprintf(out,"\nBR %s",label2);
@@ -184,11 +214,15 @@ void  traverseTree(struct node_t* p,FILE *out)
 				fprintf(out,"\n%s: NOOP",label2);
 			}
 			else
+			//If there is no else then an ending label is printed
 			{
 				fprintf(out,"\n%s: NOOP",label1);
 			}
 			break;
 		case Loop:
+			//Loop Folows the same logic of the IF node but is creates a label at the beginnig and prints at the beginning
+			//then creates another labelto brach to if the rational operators are false, Also there is a br command to the first label 
+			//printed at the end to make the loop and the second label printed after that
 			strcpy(label1,newName(LABEL));
 			fprintf(out,"\n%s: NOOP",label1);
 			traverseTree(p->children[2],out);
@@ -197,18 +231,21 @@ void  traverseTree(struct node_t* p,FILE *out)
 			traverseTree(p->children[0],out);
 			strcpy(label2,newName(LABEL));
 			if(p->children[1]->tokens[0]->tokenID==GTTK)
+			//Greather than
 			{
 				fprintf(out,"\nSUB %s",arg1);
 				fprintf(out,"\nBRZNEG %s",label2);
 				traverseTree(p->children[3],out);
 			}
 			else if(p->children[1]->tokens[0]->tokenID==LTTK)
+			//Less Than
 			{
 				fprintf(out,"\nSUB %s",arg1);
 				fprintf(out,"\nBRZPOS %s",label2);
 				traverseTree(p->children[3],out);
 			}
 			else if(p->children[1]->tokens[0]->tokenID==DBEQTK)
+			//Double Eqaul
 			{
 				fprintf(out,"\nSUB %s",arg1);
 				fprintf(out,"\nBRPOS %s",label2);
@@ -216,12 +253,14 @@ void  traverseTree(struct node_t* p,FILE *out)
 				traverseTree(p->children[3],out);
 			}
 			else if(p->children[1]->tokens[0]->tokenID==PCTTK)
+			//Percent
 			{
 				fprintf(out,"\nMULT %s",arg1);
 				fprintf(out,"\nBRNEG %s",label2);
 				traverseTree(p->children[3],out);
 			}
 			else if(p->children[1]->tokens[0]->tokenID==LBCTK)
+			//Not Eqaul
 			{
 				fprintf(out,"\nSUB %s",arg1);
 				fprintf(out,"\nBRZERO %s",label2);
@@ -231,13 +270,17 @@ void  traverseTree(struct node_t* p,FILE *out)
 			fprintf(out,"\n%s: NOOP",label2);
 			break;
 		case GoTo:
+			//Creats a Branch to the given idenitfer 
 			if(find(p->tokens[0]->tokenInstance)==-1)
+			//makes sure the given idenifer has been declared
 			{
 				errorMsg(p->tokens[0],1);
 			}
 			fprintf(out,"\nBR %s",p->tokens[0]->tokenInstance);
 			break;
 		case Expr:
+			//First traverse it's child then if it has tokens (the plus token) then stores the value in the ACC 
+			//traverses its ofher child and adds them together
 			traverseTree(p->children[0],out);
 			if(p->tokens[0]!=NULL)
 			{
@@ -248,6 +291,10 @@ void  traverseTree(struct node_t* p,FILE *out)
 			}
 			break;
 		case n:
+			//Traverses its first child and if it has tokens  if it does saves the value in the ACC
+			//then check if it is the slash or asterik token then traverses 
+			//its other child then multiplies it or then loades stores the new value and loads the old value and then divides then
+			//to preseve the order
 			traverseTree(p->children[0],out);
 			if(p->tokens[0]!=NULL)
 			{
@@ -268,6 +315,7 @@ void  traverseTree(struct node_t* p,FILE *out)
 			}
 			break;
 		case a:
+			//Mush like above but with the minus sign and subtraction
 			traverseTree(p->children[0],out);
 			if(p->tokens[0]!=NULL)
 			{
@@ -281,6 +329,8 @@ void  traverseTree(struct node_t* p,FILE *out)
 			}
 			break;
 		case m:
+			//Traverse the first child then if it has tokens (the period) 
+			//the current value in the ACC is multipled by -1 to negate it
 			traverseTree(p->children[0],out);
 			if(p->tokens[0]!=NULL)
 			{
@@ -288,7 +338,10 @@ void  traverseTree(struct node_t* p,FILE *out)
 			}
 			break;
 		case r:
+			//Since it is a leaf there are only three options an ID token, a number tokern or having a child with another expression
 			if(p->tokens[0]->tokenID==IDTK)
+			//If it is an id token it can be local varibale an dneed to be read from the stack or be
+			//a global varibale and just be loaded
 			{
 				if(find(p->tokens[0]->tokenInstance)==-1)
 				{
@@ -305,15 +358,19 @@ void  traverseTree(struct node_t* p,FILE *out)
 				}
 			}
 			if(p->tokens[0]->tokenID==NUMTK)
+			//A number can just be loaded into the ACC
 			{
 				fprintf(out,"\nLOAD %s",p->tokens[0]->tokenInstance);
 			}
 			else
+			//If it is a child with another expression it will need to be traversed
 			{
 				traverseTree(p->children[0],out);
 			}
 			break;
 		case Assign:
+			//First he ID token is read from either the staock or loaded based on if it is local or global in scope then the expression
+			//is evaluated the value fron the expression is writen to either the variable or to that spot on the stack
 			if(find(p->tokens[0]->tokenInstance)==-1)
 			{
 				errorMsg(p->tokens[0],1);
@@ -333,6 +390,7 @@ void  traverseTree(struct node_t* p,FILE *out)
 			}
 			break;
 		case Label:
+			//Creates a label with the ID token given and makes sure the ID tken given has already been declared
 			if(find(p->tokens[0]->tokenInstance)==-1)
 			{
 				errorMsg(p->tokens[0],1);
@@ -400,8 +458,8 @@ int find(char* identifier)
 //This is done by finding the node from the bottom of the stack and then taking the stack count minus that value 
 //If the identifier is not found then -1 is returned 
 {
-	struct stackNode* top=*headP;
-	int count=1;
+	struct stackNode* top=currentNode;
+	int count=0;
 	while(top!=NULL)
 	{
 		if(strcmp(top->IDtoken->tokenInstance,identifier)==0)
@@ -411,7 +469,7 @@ int find(char* identifier)
 		count++;
 		top=top->next;		
 	}	
-	return (stackCount-count);
+	return count;
 }
 bool verify(char* identifier)
 //This function returns a true or false value based on wether the given identifier is in any of the node on the stack
