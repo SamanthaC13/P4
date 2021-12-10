@@ -42,7 +42,7 @@ void  traverseTree(struct node_t* p,FILE *out)
 				push(p->tokens[0]);
 			}
 			else
-			{
+			{	
 				if(find(p->tokens[0]->tokenInstance)!=-1)
 				{
 					if(find(p->tokens[0]->tokenInstance)>varCount)
@@ -80,9 +80,21 @@ void  traverseTree(struct node_t* p,FILE *out)
 		case Block:
 			blockFlag=1;
 			//fprintf(out,"START BLOCK-%d",varCount);
+			if(p->children[0]!=NULL)
+			{	
+				varCount=0;
+			}
+			else
+			{
+				p->blockVarCount=0;
+			}
 			traverseTree(p->children[0],out);//vars
+			if(p->children[0]!=NULL)
+			{
+				p->blockVarCount=varCount;
+			}
+			//fprintf(out,"AFTER VARS-%d",varCount);
 			traverseTree(p->children[1],out);//stats
-			p->blockVarCount=varCount;
 			int k;
 			for(k=0;k<p->blockVarCount;k++)
 			{
@@ -90,7 +102,6 @@ void  traverseTree(struct node_t* p,FILE *out)
 				fprintf(out,"\nPOP");
 			}
 			blockFlag=0;
-			varCount=0;
 			//fprintf(out,"END BLOCK-%d",varCount);
 			break;
 		case Stats:
@@ -118,7 +129,7 @@ void  traverseTree(struct node_t* p,FILE *out)
 			}
 			else
 			{
-				fprintf(out,"\n READ %s",p->tokens[0]->tokenInstance);
+				fprintf(out,"\nREAD %s",p->tokens[0]->tokenInstance);
 			}
 			break;
 		case Out:
